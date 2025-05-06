@@ -1,7 +1,8 @@
 # LocalSimulationKG, AWS LocalStack Terraform simulation
 
-- **This setup is a simulate of having an AWS S3 → EC2 (Docker) → S3 pipeline on local machine using LocalStack, Terraform, and Docker.**
-- Docker, Terraform needs to be installed
+- **This setup is a simulate of having an AWS S3 → EC2 (Docker) → S3 on local machine using LocalStack, Terraform, and Docker.**
+- Docker, Terraform, boto3 needs to be installed
+- There are still errors, EC2 is simulation, Knowledge graph generation is not working.
 ## 1. Repository Structure
 ```
 project-root/
@@ -31,6 +32,8 @@ project-root/
     ├── initTerra.sh         # Terraform init/apply
     ├── main.py              # PDF → terraform/data → apply → collect results
     ├── tfManager.py         # Helper function, run initTerra.sh
+    ├── awsClient.py         # Boto3-based S3 & EC2 clients pointing at LocalStack
+    ├── config.py            # LocalStack endpoint & Terraform-output keys
     └── results/             # Collected JSON outputs
 ```
 
@@ -57,13 +60,12 @@ docker run --rm -it \
 ```
 
 ## 3. Provision LocalStack and Job Container via Terraform
-- **provider.tf**: configures AWS CLI to use LocalStack endpoints, plus Docker and Time providers.
-- **variables.tf**: defines `ami_id` (placeholder) and `s3_bucket` (e.g. `my-bucket`).
+- **provider.tf**: configures AWS CLI to use LocalStack endpoints, plus Docker and Time providers points to localhost:4566
+- **variable.tf**: defines `ami_id` (placeholder) and `s3_bucket` (e.g. `my-bucket`).
 - **locals.tf**: uses `time_static` to create a consistent `job_id`; constructs S3 URIs.
 - **main.tf**:
     - `docker_container.localstack`: spins up the LocalStack container (S3, EC2, IAM).
     - `aws_s3_bucket.create_bucket`: creates the S3 bucket in LocalStack.
-    - `docker_container.kggen_job`: mounts `terraform/data`, runs `/app/newIngestion.sh /data/input.pdf /data/output` inside the ingestion image.
     - IAM Role, Instance Profile, and `aws_launch_template.kggen_lt`: placeholders for possible real EC2 deployment.
 - **output.tf**: exposes `instance_id`, `launch_template_id`, and `s3_output` bucket name.
 - **terraform.tfvars**：ami_id
@@ -90,12 +92,15 @@ terraform output
 - **initTerra.sh:**
 	- Equivalent to manually run init and apply, after having the script run the bash file in this folder could replace the above manual steps
 	- `terraform init` + `terraform apply`
-- **activateTerraform/main.py**：(This needs to be updated, S3 is not fully utilized.)
-    1. Copy the PDF to `../terraform/data/input.pdf`, enable KGGen to find and load.
-    2. Run `initTerra.sh` through `TfManager.ensure_infra()`
-    3. At the end of finishing terraform process, the script copys the `terraform/data/output/*.json` to local `./results/`。
-- **activateTerraform/tfManager.py**：helper function to run `./initTerra.sh` 
+- **activateTerraform/main.py**：(This needs to be updated, currently sending the route, not the file)
+    1. `TfManager.ensure_infra()`, spins up LocalStack & job container
+    2. `TfManager.get_s3_bucket_name()`, reads the bucket name from Terraform outputs
+    3. Upload the PDF to `s3://<bucket>/input/<job_id>.pdf` via the Boto3 client
+    4. Run `initTerra.sh` through `TfManager.ensure_infra()`
+	5. Call `TfManager.ensure_infra()` to spin up LocalStack, create bucket, run `kggen_job`
+    6. Download the generated JSON back out of S3 into `./results/<job_id>/`
 
+- **activateTerraform/tfManager.py**：helper function to run `./initTerra.sh` 
 ```
 cd ../activateTerraform
 # The next command includes this command

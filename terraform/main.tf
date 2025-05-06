@@ -19,7 +19,6 @@ resource "aws_s3_bucket" "create_bucket" {
   depends_on = [ docker_container.localstack ]
 }
 
-# simulate docker running on EC2
 resource "docker_container" "kggen_job" {
   name       = "kggen-job-${local.job_id}"
   image      = "kggen-ollama:with-phi4"
@@ -27,19 +26,25 @@ resource "docker_container" "kggen_job" {
     docker_container.localstack,
     aws_s3_bucket.create_bucket,
   ]
-  
+
   volumes {
     host_path      = abspath("${path.module}/data")
     container_path = "/data"
   }
-
-  entrypoint = ["/app/newIngestion.sh"]
-
-  command = [
-    "/data/input.pdf",
-    "/data/output"
+  env = [
+    "AWS_ACCESS_KEY_ID=test",
+    "AWS_SECRET_ACCESS_KEY=test",
+    "AWS_DEFAULT_REGION=us-west-2",
   ]
+  entrypoint = ["/app/newIngestion.sh"]
+  command    = [
+    "s3://${local.s3_bucket}/input/${local.job_id}.pdf",
+    "/data/output/${local.job_id}"
+  ]
+  wait       = false
+  must_run   = false
 }
+
 
 # IAM role & profile for EC2 access to S3
 resource "aws_iam_role" "ec2_role" {
