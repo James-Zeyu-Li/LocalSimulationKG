@@ -22,10 +22,6 @@ class TfManager:
 
     @staticmethod
     def load_output(key: str) -> str:
-        """
-        Run `terraform output -no-color -raw <key>` in the Terraform directory
-        and return its value as a string.
-        """
         cmd = [
             "terraform",
             "output",
@@ -41,9 +37,7 @@ class TfManager:
 
     @classmethod
     def get_s3_bucket_name(cls) -> str:
-        """
-        Retrieve and validate the S3 bucket name from Terraform outputs.
-        """
+        # Retrieve and validate the S3 bucket name from Terraform outputs.
         bucket = cls.load_output(TF_S3_BUCKET_KEY)
         if not bucket or not re.fullmatch(r"[A-Za-z0-9.\-_]{1,255}", bucket):
             sys.exit(f"[TF ERROR] Invalid S3 bucket name: {bucket}")

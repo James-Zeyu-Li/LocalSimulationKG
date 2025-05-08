@@ -3,6 +3,7 @@
 - **This setup is a simulate of having an AWS S3 → EC2 (Docker) → S3 on local machine using LocalStack, Terraform, and Docker.**
 - Docker, Terraform, boto3 needs to be installed
 - There are still errors, EC2 is simulation, Knowledge graph generation is not working.
+- venv environment needs to be activated for boto3.
 ## 1. Repository Structure
 ```
 project-root/
@@ -125,27 +126,20 @@ docker rm -f localstack
   "relations": []
 }
 ```
-- When manually process PDF through docker
-```
-docker run --rm -it \
-  -v "$(pwd)/terraform/data:/data:rw" \
-  kggen-ollama:with-phi4 \
-  /data/input.pdf /data/output
-```
-
+- Problem output
 ```
 Process chunk 1/429
-	Error in kg.generate: litellm.APIConnectionError: OllamaException - {"error":"model requires more system memory (11.2 GiB) than is available (7.6 GiB)"}
-	Chunk processed in 0.14s
-	Saving as '/data/output/chunk-0-0-3.json'
+        Error in kg.generate: litellm.APIConnectionError: OllamaException - {"error":"model requires more system memory (11.2 GiB) than is available (7.6 GiB)"}
+        Chunk processed in 0.15s
+        Saving as '/data/output/20250508101826/chunk-0-0-3.json'
 Process chunk 2/429
-	Error in kg.generate: litellm.APIConnectionError: OllamaException - {"error":"model requires more system memory (11.2 GiB) than is available (7.6 GiB)"}
-	Chunk processed in 0.10s
-	Saving as '/data/output/chunk-1-2-3.json'
+        Error in kg.generate: litellm.APIConnectionError: OllamaException - {"error":"model requires more system memory (11.2 GiB) than is available (7.6 GiB)"}
+        Chunk processed in 0.10s
+        Saving as '/data/output/20250508101826/chunk-1-2-3.json'
 Process chunk 3/429
-	Error in kg.generate: litellm.APIConnectionError: OllamaException - {"error":"model requires more system memory (11.2 GiB) than is available (7.6 GiB)"}
-	Chunk processed in 0.10s
-	Saving as '/data/output/chunk-2-2-5.json'
+        Error in kg.generate: litellm.APIConnectionError: OllamaException - {"error":"model requires more system memory (11.2 GiB) than is available (7.6 GiB)"}
+        Chunk processed in 0.10s
+        Saving as '/data/output/20250508101826/chunk-2-2-5.json'
 ```
 
 - Seems like don't have enough memory, which haven't been figured yet, could also be a docker construction issue.  
